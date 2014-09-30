@@ -6,7 +6,7 @@ PIXI.FOVBlurXFilter = function()
 
     // set the uniforms
     this.uniforms = {
-        blurMax: {type: '1f', value: 1/300}
+      blurMax: {type: '1f', value: 1/200}
     };
 
     this.fragmentSrc = [
@@ -38,6 +38,17 @@ PIXI.FOVBlurXFilter = function()
 PIXI.FOVBlurXFilter.prototype = Object.create( PIXI.AbstractFilter.prototype );
 PIXI.FOVBlurXFilter.prototype.constructor = PIXI.FOVBlurXFilter;
 
+Object.defineProperty(PIXI.FOVBlurXFilter.prototype, 'blurMax', {
+    get: function() {
+        return this.uniforms.blurMax.value / (1/200);
+    },
+    set: function(value) {
+
+        this.dirty = true;
+        this.uniforms.blurMax.value = (1/200) * value;
+    }
+});
+
 PIXI.FOVBlurYFilter = function()
 {
     PIXI.AbstractFilter.call( this );
@@ -46,7 +57,7 @@ PIXI.FOVBlurYFilter = function()
 
     // set the uniforms
     this.uniforms = {
-        blurMax: {type: '1f', value: 1/300}
+      blurMax: {type: '1f', value: 1/200}
     };
 
     this.fragmentSrc = [
@@ -78,7 +89,18 @@ PIXI.FOVBlurYFilter = function()
 PIXI.FOVBlurYFilter.prototype = Object.create( PIXI.AbstractFilter.prototype );
 PIXI.FOVBlurYFilter.prototype.constructor = PIXI.FOVBlurYFilter;
 
-PIXI.FOVDisplacementFilter = function()
+Object.defineProperty(PIXI.FOVBlurYFilter.prototype, 'blurMax', {
+    get: function() {
+        return this.uniforms.blurMax.value / (1/200);
+    },
+    set: function(value) {
+
+        this.dirty = true;
+        this.uniforms.blurMax.value = (1/200) * value;
+    }
+});
+
+PIXI.FOVDistorsionFilter = function()
 {
     PIXI.AbstractFilter.call( this );
 
@@ -86,36 +108,48 @@ PIXI.FOVDisplacementFilter = function()
 
     // set the uniforms
     this.uniforms = {
-        distorsionMax: {type: '2f', value:{x:0.09, y:0.09}}
+      distorsionMax: {type: '1f', value:0.2}
     };
 
     this.fragmentSrc = [
         'precision mediump float;',
         'varying vec2 vTextureCoord;',
         'varying vec4 vColor;',
-        'uniform vec2 distorsionMax;',
+        'uniform float distorsionMax;',
         'uniform sampler2D uSampler;',
 
         'void main(void) {',
-        '   vec2 offset = distorsionMax.xy * ((0.5 - vTextureCoord.x) + (0.5 - vTextureCoord.y));',
+        '   vec2 distorsion = vec2( distorsionMax * (0.5 - vTextureCoord.x), distorsionMax * (0.5 - vTextureCoord.y) );',
 
-        '   gl_FragColor = texture2D(uSampler, vec2(vTextureCoord.x + offset.x, vTextureCoord.y + offset.y));',
+        '   gl_FragColor = texture2D(uSampler, vTextureCoord.xy + distorsion.xy);',
+        '   gl_FragColor.rgb = mix( gl_FragColor.rgb, gl_FragColor.rgb, 1.0);',
         '}'
     ];
 };
 
-PIXI.FOVDisplacementFilter.prototype = Object.create( PIXI.AbstractFilter.prototype );
-PIXI.FOVDisplacementFilter.prototype.constructor = PIXI.FOVDisplacementFilter;
+PIXI.FOVDistorsionFilter.prototype = Object.create( PIXI.AbstractFilter.prototype );
+PIXI.FOVDistorsionFilter.prototype.constructor = PIXI.FOVDistorsionFilter;
+
+Object.defineProperty(PIXI.FOVDistorsionFilter.prototype, 'distorsionMax', {
+    get: function() {
+        return this.uniforms.distorsionMax.value;
+    },
+    set: function(value) {
+
+        this.dirty = true;
+        this.uniforms.distorsionMax.value = value;
+    }
+});
 
 PIXI.FOVFilter = function()
 {
     this.FOVBlurXFilter = new PIXI.FOVBlurXFilter();
     this.FOVBlurYFilter = new PIXI.FOVBlurYFilter();
 
-    this.FOVDisplacementFilter = new PIXI.FOVDisplacementFilter();
+    this.FOVDistorsionFilter = new PIXI.FOVDistorsionFilter();
 
     this.passes = [
-      this.FOVDisplacementFilter,
+      this.FOVDistorsionFilter,
       this.FOVBlurXFilter,
       this.FOVBlurYFilter
     ];
@@ -123,18 +157,18 @@ PIXI.FOVFilter = function()
 
 Object.defineProperty(PIXI.FOVFilter.prototype, 'blurMax', {
     get: function() {
-        return this.FOVBlurXFilter.blurMax;
+      return this.FOVBlurXFilter.blurMax;
     },
     set: function(value) {
-        this.FOVBlurXFilter.blurMax = this.FOVBlurYFilter.blurMax = value;
+      this.FOVBlurXFilter.blurMax = this.FOVBlurYFilter.blurMax = value;
     }
 });
 
 Object.defineProperty(PIXI.FOVFilter.prototype, 'distorsionMax', {
     get: function() {
-        return this.FOVDisplacementFilter.distorsionMax;
+      return this.FOVDistorsionFilter.distorsionMax;
     },
     set: function(value) {
-        this.FOVDisplacementFilter.distorsionMax = value;
+      this.FOVDistorsionFilter.distorsionMax = value;
     }
 });
